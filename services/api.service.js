@@ -18,7 +18,10 @@ module.exports = {
 				"**"
 			],
 			aliases: {
-				"POST /technology": "technology.add"
+				"POST generate": "technology.task",
+				"PUT Week": "technology.week",
+				"GET Sheet": "technology.sheet",
+				"PUT Task":"technology.task"
 			},
 			cors: true,
 			bodyParsers: {
@@ -34,16 +37,31 @@ module.exports = {
 		// Serve assets from "public" folder
 		assets: {
 			folder: "public"
-		}
+		},
+
+		// use: [
+
+		// simulate a middleware error
+		// (req, res, next) => {
+		//   next(new Error('Something went wrong'))
+		// },
+
+		// 	simulate a error handling middleware
+		// 	function (err, req, res, next) {
+		// 	  this.logger.error('Error is occured in middlewares!');
+		// 	  this.sendError(req, res, err);
+		// 	},
+
+		//   ],
 	},
 	methods: {
 		authorize(ctx, route, req) {
-			return new this.Promise((res,rej)=>{
+			return new this.Promise((res, rej) => {
 				let token = req.headers.token
 
 				if (token) {
 					// Verify JWT token
-					 ctx.call("users.resolveToken", { token })
+					ctx.call("users.resolveToken", { token })
 						.then(user => {
 							if (user) {
 								this.logger.info("Authenticated via JWT: ", user.email);
@@ -52,11 +70,11 @@ module.exports = {
 							return res(ctx);
 						})
 						.catch(err => {
-						return rej({status:false,message:"Authentication Failed"})	
+							return rej({ status: false, message: "Authentication Failed" })
 						});
 				}
 			})
-			
+
 
 
 		}
