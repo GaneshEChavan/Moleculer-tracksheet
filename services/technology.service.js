@@ -80,12 +80,13 @@ module.exports = {
                         userID: ctx.meta.fromStage.user,
                         techno: ctx.meta.fromStage.entity.techno
                     })
-                    techData.save().then(data => {
+                    return techData.save().then(data => {
                         sheetSchema.tech.findByIdAndUpdate({ "_id": data._id }, { $addToSet: { "stage": ctx.meta.fromStage.id } }).then((Data) => {
                             console.log("tech.service--------------->85", Data)
-                            res(Data)
+                            return res(Data)
                         })
                     }).catch(err => {
+                        return
                         rej(new MoleculerClientError("unable to add technology", 400, "", [{ field: "technology", message: "is not added" }]))
                     })
                 })
@@ -102,34 +103,62 @@ module.exports = {
             //     }
             // },
             handler(ctx) {
-                return new this.Promise((res, rej) => {
-                    let techData = new sheetSchema.stage({
-                        stage: ctx.meta.fromWeek.entity.stage || ctx.params.user.stage,
-                        userID: ctx.meta.fromWeek.user
-                    })
-                    if (ctx.meta.fromWeek.entity.stage) {
-                        techData.save().then(stageAdd => {
-                            sheetSchema.stage.findByIdAndUpdate({ "_id": stageAdd._id }, { $addToSet: { "week": ctx.meta.fromWeek.id } }).then(() => {
-                                ctx.call("technology.add", null, {
-                                    meta: {
-                                        fromStage: {
-                                            id: stageAdd._id,
-                                            entity: ctx.meta.fromWeek.entity,
-                                            user: ctx.meta.fromWeek.user
-                                        }
-                                    }
-                                }).then(() => {
-                                    this.logger.info("called")
+                if (ctx.meta.fromWeek) {
+                    return new this.Promise((res, rej) => {
+                        sheetSchema.stage.find({ "userID": ctx.meta.fromWeek.user, "stage": ctx.meta.fromWeek.entity.stage }).then(data => {
+                            console.log("data in techno.service------------->108", data)
+                            if (data.length > 0) {
+                                rej(new MoleculerClientError("stage already added for particuler user-tech.service", 400))
+                            } else {
+                                let techData = new sheetSchema.stage({
+                                    stage: ctx.meta.fromWeek.entity.stage,
+                                    userID: ctx.meta.fromWeek.user
                                 })
-                            })
+                                techData.save().then(stageAdd => {
+                                    sheetSchema.stage.findByIdAndUpdate({ "_id": stageAdd._id }, { $addToSet: { "week": ctx.meta.fromWeek.id } }).then(() => {
+                                        ctx.call("technology.add", null, {
+                                            meta: {
+                                                fromStage: {
+                                                    id: stageAdd._id,
+                                                    entity: ctx.meta.fromWeek.entity,
+                                                    user: ctx.meta.fromWeek.user
+                                                }
+                                            }
+                                        }).then(() => {
+                                            this.logger.info("called")
+                                            return res("created")
+                                        })
+                                    })
+                                }).catch(err => {
+                                    rej(new MoleculerClientError("unable to add stage-tech.service", 400, "", [{ field: "stage", message: "is not added" }]))
+                                })
+                            }
                         }).catch(err => {
-                            rej(new MoleculerClientError("unable to add stage", 400, "", [{ field: "stage", message: "is not added" }]))
+                            rej(new MoleculerClientError("Something went wrong-tech.service", 400))
                         })
-                    } else {
+                    })
+                } else {
+                    return new this.Promise((res, rej) => {
+                        sheetSchema.stage.find({ "userID": ctx.meta.user.id, "stage": ctx.params.stage }).then(data => {
+                            if (data.length > 0) {
+                                rej(new MoleculerClientError("stage already added to particuler user", 400))
+                            } else {
+                                let techData = new sheetSchema.stage({
+                                    stage: ctx.params.stage,
+                                    userID: ctx.meta.user.id
+                                })
+                                techData.save().then(data => {
+                                    res(data)
+                                }).catch(err => {
+                                    rej(new MoleculerClientError("unable to add stage", 400))
+                                })
+                            }
+                        }).catch(err => {
+                            rej(new MoleculerClientError("something went wrong-tech.service", 400))
+                        })
+                    })
+                }
 
-                    }
-
-                })
 
             }
         },
@@ -139,28 +168,35 @@ module.exports = {
             handler(ctx) {
                 if (ctx.meta.info !== undefined) {
                     return new this.Promise((res, rej) => {
-
-                        let techData = new sheetSchema.week({
-                            week: ctx.meta.info.entity.week,
-                            userID: ctx.meta.info.user
-                        })
-                        techData.save().then(data => {
-                            sheetSchema.week.findByIdAndUpdate({ "_id": data._id }, { $addToSet: { "task": ctx.meta.info.id } }).then(updated => {
-                                ctx.call("technology.stage", null, {
-                                    meta: {
-                                        fromWeek: {
-                                            id: updated._id,
-                                            entity: ctx.meta.info.entity,
-                                            user: ctx.meta.info.user
-                                        }
-                                    }
-                                }).then(() => {
-                                    this.logger.info("called ")
+                        sheetSchema.week.find({ "userID": ctx.meta.info.user, "week": ctx.meta.info.entity.week }).then(data => {
+                            if (data.length > 0) {
+                                rej(new MoleculerClientError("Week alredy exists for perticuler user-tech.service", 400))
+                            } else {
+                                let techData = new sheetSchema.week({
+                                    week: ctx.meta.info.entity.week,
+                                    userID: ctx.meta.info.user
                                 })
-                            })
-                        }).catch(err => {
-                            rej(new MoleculerClientError("unable to add week", 400, "", [{ field: "week", message: "is not added" }]))
+                                techData.save().then(data => {
+                                    sheetSchema.week.findByIdAndUpdate({ "_id": data._id }, { $addToSet: { "task": ctx.meta.info.id } }).then(updated => {
+                                        ctx.call("technology.stage", null, {
+                                            meta: {
+                                                fromWeek: {
+                                                    id: updated._id,
+                                                    entity: ctx.meta.info.entity,
+                                                    user: ctx.meta.info.user
+                                                }
+                                            }
+                                        }).then(() => {
+                                            this.logger.info("called ")
+                                            return ("created")
+                                        })
+                                    })
+                                }).catch(err => {
+                                    rej(new MoleculerClientError("unable to add week", 400, "", [{ field: "week", message: "is not added" }]))
+                                })
+                            }
                         })
+
                     })
                 } else {
                     return new this.Promise((res, rej) => {
@@ -207,25 +243,31 @@ module.exports = {
                 if (entity.techno !== "" && entity.stage !== "" && entity.week !== "" && entity.task !== "") {
                     return this.validateEntity(entity)
                         .then(() => {
-                            let techData = new sheetSchema.task({
-                                task: entity.task,
-                                userID: ctx.meta.user.id
-                            })
-                            return techData.save().then(data => {
-                                console.log("data saved to DB", data);
-                                ctx.call("technology.week", null, {
-                                    meta: {
-                                        info: {
-                                            id: data._id,
-                                            entity: ctx.params.technology,
-                                            user: ctx.meta.user.id
+                            return sheetSchema.task.find({ "userID": ctx.meta.user.id, "task": entity.task }).then(async data => {
+                                if (data.length > 0) {
+                                    return Promise.reject(new MoleculerClientError("task is already added to particuler user", 400))
+                                } else {
+                                    let techData = new sheetSchema.task({
+                                        task: entity.task,
+                                        userID: ctx.meta.user.id
+                                    })
+                                    const data_1 = await techData.save();
+                                    console.log("data saved to DB", data_1);
+                                    ctx.call("technology.week", null, {
+                                        meta: {
+                                            info: {
+                                                id: data_1._id,
+                                                entity: ctx.params.technology,
+                                                user: ctx.meta.user.id
+                                            }
                                         }
-                                    }
-                                }).then(() => {
-                                    this.logger.info("called")
-                                })
-                                // return Promise.resolve(data)
+                                    }).then(() => {
+                                        this.logger.info("called");
+                                        return res("created")
+                                    });
+                                }
                             })
+
                         })
                 } else {
                     return Promise.reject(new MoleculerClientError("All fields must be filled", 400))

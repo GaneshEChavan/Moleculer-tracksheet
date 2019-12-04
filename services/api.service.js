@@ -21,7 +21,7 @@ module.exports = {
 				"POST generate": "technology.task",
 				"PUT Week": "technology.week",
 				"GET Sheet": "technology.sheet",
-				"PUT Task":"technology.task"
+				"PUT Stage":"technology.stage"
 			},
 			cors: true,
 			bodyParsers: {
