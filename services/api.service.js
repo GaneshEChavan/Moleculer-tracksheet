@@ -18,6 +18,7 @@ module.exports = {
 				"**"
 			],
 			aliases: {
+				"GET greeter":"greeter.hello",
 				"POST generate": "technology.task",
 				"PUT Week": "technology.week",
 				"GET Sheet": "technology.sheet",

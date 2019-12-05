@@ -7,17 +7,24 @@ services:
       context: .
     image: track-sheet
     container_name: track-sheet-api
+    # ports:
+    #   - 4001:4001 
+    command: npm run dev
     env_file: docker-compose.env
     environment:
       SERVICES: api
       PORT: 4001
+    # links:
+    #   -nats
+    #   -mongo
     depends_on:
       - nats
       - redis
+      # - mongo
     labels:
       - "traefik.enable=true"
       - "traefik.backend=api"
-      - "traefik.port=3000"
+      - "traefik.port=4001"
       - "traefik.frontend.entryPoints=http"
       - "traefik.frontend.rule=PathPrefix:/"
     networks:
@@ -28,6 +35,7 @@ services:
       context: .
     image: track-sheet
     container_name: track-sheet-greeter
+    
     env_file: docker-compose.env
     environment:
       SERVICES: greeter
@@ -39,6 +47,42 @@ services:
     networks:
       - internal
 
+  technology:
+    build:
+      context: .
+    image: track-sheet
+    container_name: track-sheet-technology
+
+    env_file: docker-compose.env
+    environment:
+      SERVICES: technology
+    labels:
+      - "traefik.enable=false"
+    depends_on:
+      - nats
+      - redis
+      - mongo
+    networks:
+      - internal
+ 
+  # user:
+  #   build:
+  #     context: .
+  #   image: moleculer-demo
+  #   container_name: moleculer-demo-user
+
+  #   env_file: docker-compose.env
+  #   environment:
+  #     SERVICES: technology
+  #   labels:
+  #     - "traefik.enable=false"
+  #   depends_on:
+  #     - nats
+  #     - redis
+  #     - mongo
+  #   networks:
+  #     - internal
+
   nats:
     image: nats
     labels:
@@ -48,6 +92,13 @@ services:
 
   redis:
     image: redis:alpine
+    labels:
+      - "traefik.enable=false"
+    networks:
+      - internal
+  
+  mongo:
+    image: mongo
     labels:
       - "traefik.enable=false"
     networks:
@@ -65,8 +116,8 @@ services:
       - "traefik.backend=traefik"
       - "traefik.port=8080"
     ports:
-      - 3000:80
-      - 3001:8080
+      - 4001:80
+      - 4002:8080
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /dev/null:/traefik.toml
