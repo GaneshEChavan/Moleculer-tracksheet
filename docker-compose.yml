@@ -2,7 +2,7 @@ version: "3.2"
 
 services:
 
-  api:
+  api_sheet:
     build:
       context: .
     image: track-sheet
@@ -25,6 +25,34 @@ services:
       - "traefik.enable=true"
       - "traefik.backend=api"
       - "traefik.port=4001"
+      - "traefik.frontend.entryPoints=http"
+      - "traefik.frontend.rule=PathPrefix:/"
+    networks:
+      - internal
+
+  api_user:
+    build:
+      context: ../moleculer-demo
+    image: moleculer-demo
+    container_name: moleculer-demo-api
+    # ports:
+    #   - 4001:4001 
+    command: npm run dev
+    env_file: docker-compose.env
+    environment:
+      SERVICES: api
+      PORT: 4003
+    # links:
+    #   -nats
+    #   -mongo
+    depends_on:
+      - nats
+      - redis
+      # - mongo
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=api"
+      - "traefik.port=4003"
       - "traefik.frontend.entryPoints=http"
       - "traefik.frontend.rule=PathPrefix:/"
     networks:
@@ -65,23 +93,24 @@ services:
     networks:
       - internal
  
-  # user:
-  #   build:
-  #     context: .
-  #   image: moleculer-demo
-  #   container_name: moleculer-demo-user
-
-  #   env_file: docker-compose.env
-  #   environment:
-  #     SERVICES: technology
-  #   labels:
-  #     - "traefik.enable=false"
-  #   depends_on:
-  #     - nats
-  #     - redis
-  #     - mongo
-  #   networks:
-  #     - internal
+  user:
+    build:
+      context: ../moleculer-demo
+    image: moleculer-demo
+    container_name: moleculer-demo-user
+    # ports:
+    #   - 4000:4000
+    env_file: docker-compose.env
+    environment:
+      SERVICES: user
+    labels:
+      - "traefik.enable=false"
+    depends_on:
+      - nats
+      - redis
+      - mongo
+    networks:
+      - internal
 
   nats:
     image: nats
@@ -118,6 +147,7 @@ services:
     ports:
       - 4001:80
       - 4002:8080
+      - 4003:80
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /dev/null:/traefik.toml
